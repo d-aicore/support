@@ -1,0 +1,21 @@
+{
+  "description": "Core network guards: records model-policy drift on every prompt (fail-open, non-blocking).",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "async": false,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${QODER_PLUGIN_ROOT}/hooks/model-policy.mjs"
+            ],
+            "name": "core-model-policy",
+            "timeout": 2
+          }
+        ]
+      }
+    ]
+  }
+}
