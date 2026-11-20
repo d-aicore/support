@@ -33,18 +33,32 @@ Preconditions, in order: a valid **write** credential exists; `ls-remote` of eac
 refs; each push is a creation. If any fails: stop, report the literal error, never force, never
 delete remote refs, never touch `D:/CORE/CORE`'s working tree.
 
-## Credential blocker (measured 2026-11-20)
+## Credential blocker (measured 2026-11-20, pusher gate 0)
 
-- `gh auth status`: account `d-aicore` keyring token **invalid**; account `diogo-o` valid but
-  `permissions.push=false` on `d-aicore/core-org` (pull only).
+The push-only actor stopped at its auth precondition and attempted **no push**. `gh auth status`
+lists **three** accounts:
+
+| Account | Token | core-org / support permissions |
+|---|---|---|
+| `d-aicore` (active) | keyring **invalid** → HTTP 401 `Bad credentials` | not verifiable |
+| `diogo-o` | valid | `pull=true`, `push=false`, `admin=false` on both |
+| `dmo-app` | valid | `pull=true`, `push=false`, `admin=false` on both |
+
+Root cause: the two repositories grant **read** to org members by default, so even a valid
+org-member token cannot write. A fine-grained PAT from `diogo-o` or `dmo-app` cannot exceed their
+access. The usable key is therefore one issued by an identity with **write/admin** on both repos —
+practically the org owner (`d-aicore`) — or the owner grants write to the account the key belongs to
+(Settings → Collaborators / teams).
+
 - Windows credential manager: no stored credential; it opens an interactive prompt (a silent hang
   under `timeout`, which earlier masqueraded as success — the exit code measured was the pipe's).
 - The GitHub MCP identity (`d-aicore`) is valid for API writes but cannot transport the application
   history or the full support tree; it is not a substitute for a git push.
 
-**Unblock (owner, one of):** re-authenticate `gh auth login -h github.com` as `d-aicore`; or store a
-fine-grained PAT with `contents: write` on both repos; or grant `diogo-o` write on both repos in
-Settings → Collaborators. After any of these, the push-only actor executes the two commands above.
+**Unblock (owner):** place a write-capable token in `D:/Core-Projects/.secrets/github-token.txt`
+(one line, token only). The coordinator imports it with `gh auth login --with-token` (value never
+printed), verifies permissions by API, and the pusher then executes the two creation pushes. The
+plaintext file is removed after verified import.
 
 ## After publication
 
